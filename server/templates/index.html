@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory management Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <style>
+        body {
+            background-image: url('/static/back.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        .container {
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 50px;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .table {
+            margin-top: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: black; /* Ensure table text is readable */
+        }
+        .update-message {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .btn-update, .btn-delete {
+            margin-right: 5px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white; /* Make h1 text white */
+            background-color: rgba(0, 0, 0, 0.5); /* Add background color with transparency */
+            padding: 10px; /* Add some padding */
+            border-radius: 10px; /* Add rounded corners */
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Memory management Dashboard</h1>
+        <div class="card mt-4">
+            <div class="card-header">
+                Add New VM
+            </div>
+            <div class="card-body">
+                <form id="addVmForm">
+                    <div class="form-group">
+                        <label for="vmIp">VM IP</label>
+                        <input type="text" class="form-control" id="vmIp" placeholder="Enter VM IP" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="xValue">X Value</label>
+                        <input type="number" class="form-control" id="xValue" min="1" max="2" step="0.1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add VM</button>
+                </form>
+            </div>
+        </div>
+        <div class="card mt-4">
+            <div class="card-header">
+                VM List
+            </div>
+            <div class="card-body">
+                <form id="updateMultipleForm">
+                    <div class="form-group">
+                        <label for="bulkXValue">New X Value for Selected VMs</label>
+                        <input type="number" class="form-control" id="bulkXValue" min="1" max="2" step="0.1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Selected VMs</button>
+                </form>
+                <table class="table table-bordered mt-4">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>IP</th>
+                            <th>X Value</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vmTableBody">
+                        {% for vm in vms %}
+                            <tr>
+                                <td><input type="checkbox" class="vm-checkbox" data-ip="{{ vm.ip }}"></td>
+                                <td>{{ vm.ip }}</td>
+                                <td>{{ vm.x_value }}</td>
+                                <td>
+                                    <button class="btn btn-secondary btn-update" data-ip="{{ vm.ip }}" data-x="{{ vm.x_value }}">Update</button>
+                                    <button class="btn btn-danger btn-delete" data-ip="{{ vm.ip }}">Delete</button>
+                                    <span class="update-message"></span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#addVmForm').on('submit', function(event) {
+                event.preventDefault();
+                const vmIp = $('#vmIp').val();
+                const xValue = $('#xValue').val();
+                $.ajax({
+                    url: '/add_vm',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ ip: vmIp, x_value: xValue }),
+                    success: function(response) {
+                        alert('VM added successfully');
+                        location.reload();
+                    }
+                });
+            });
+
+            $('#updateMultipleForm').on('submit', function(event) {
+                event.preventDefault();
+                const xValue = $('#bulkXValue').val();
+                const selectedIps = $('.vm-checkbox:checked').map(function() {
+                    return $(this).data('ip');
+                }).get();
+                if (selectedIps.length > 0 && xValue >= 1 && xValue <= 2) {
+                    $.ajax({
+                        url: '/update_multiple_vms',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ ips: selectedIps, x_value: parseFloat(xValue) }),
+                        success: function(response) {
+                            response.forEach(function(msg) {
+                                alert(`IP: ${msg.ip} - ${msg.message}`);
+                            });
+                            location.reload();
+                        },
+                        error: function(response) {
+                            alert('Failed to update selected VMs');
+                        }
+                    });
+                } else {
+                    alert('Invalid X value or no VMs selected');
+                }
+            });
+
+            $('.btn-update').on('click', function() {
+                const vmIp = $(this).data('ip');
+                const xValue = prompt('Enter new X value:', $(this).data('x'));
+                const messageSpan = $(this).siblings('.update-message');
+                if (xValue !== null && xValue >= 1 && xValue <= 2) {
+                    $.ajax({
+                        url: '/update_vm',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ ip: vmIp, x_value: parseFloat(xValue) }),
+                        success: function(response) {
+                            messageSpan.text(response.message).css('color', 'green');
+                        },
+                        error: function(response) {
+                            messageSpan.text(response.responseJSON.message).css('color', 'red');
+                        }
+                    });
+                } else {
+                    alert('Invalid X value');
+                }
+            });
+
+            $('.btn-delete').on('click', function() {
+                const vmIp = $(this).data('ip');
+                const messageSpan = $(this).siblings('.update-message');
+                if (confirm('Are you sure you want to delete this VM?')) {
+                    $.ajax({
+                        url: '/delete_vm',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ ip: vmIp }),
+                        success: function(response) {
+                            messageSpan.text(response.message).css('color', 'green');
+                            setTimeout(function() { location.reload(); }, 500); // Reload after a short delay
+                        },
+                        error: function(response) {
+                            messageSpan.text(response.responseJSON.message).css('color', 'red');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
