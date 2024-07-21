@@ -91,9 +91,7 @@ To set up and run the Flask-based server:
 Once the agent and server are running, memory data will be collected and sent to Prometheus. You can then visualize the data in Grafana and manage configurations via the Flask web interface.
 
 ## Contributing
-
-Feel free to contribute by submitting issues or pull requests. Please ensure your changes are well-documented and tested.
-
+(https://drive.google.com/drive/folders/1fVKD3qgvdG7FxvTgnFoAcVnp6Z6kjkZJ?usp=sharing)
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
